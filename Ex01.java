@@ -1,4 +1,6 @@
 import java.awt.*;
+import java.util.Stack;
+
 import javax.swing.*;
 
 public class Ex01 extends JFrame implements Runnable {
@@ -7,14 +9,22 @@ public class Ex01 extends JFrame implements Runnable {
 	Image left_img, right_img, short_img;
 	Graphics buffg = null;
 	Image buffImage;
+	boolean short_count, short_check;
+	Stack<Short_xy> stack = new Stack<>();
+	Stack<Short_xy> stack2 = new Stack<>();
 	boolean left_up, left_down, left_left, left_right;
 	boolean right_up, right_down, right_left, right_right;
+	boolean short_up, short_down, short_left, short_right;
 	int left_x = 1, left_y = 2;
 	int right_x = 1, right_y = 2;
+	int short_x = 1, short_y = 2;
+	int short2_x = 1, short2_y = 2;
 	int left_char_x = 50, left_char_y = 100;
 	int right_char_x = 50, right_char_y = 100;
-	boolean left_exit, left_move;
-	boolean right_exit, right_move;
+	int short_char_x = 50, short_char_y = 100;
+	boolean left_exit = false, left_move;
+	boolean right_exit = false, right_move;
+	boolean short_exit = false, short_move;
 	int[][] tile = {
 			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 		   ,{1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1}
@@ -26,7 +36,7 @@ public class Ex01 extends JFrame implements Runnable {
 		   ,{1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1}
 		   ,{1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1}
 		   ,{1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1}
-		   ,{1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1}
+		   ,{1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1}
 		   ,{1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1}
 		   ,{1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1}
 		   ,{1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1}
@@ -37,6 +47,7 @@ public class Ex01 extends JFrame implements Runnable {
 		   ,{1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 1}
 		   ,{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 	};
+	boolean[][] tile_visit = new boolean[20][21];
 	/*
 	 * 타일	- 기본 땅 번호
 	 * 0
@@ -45,7 +56,7 @@ public class Ex01 extends JFrame implements Runnable {
 	 * 3	- 도착지
 	 */
 	Ex01() {
-		Dimension dim = new Dimension(1000, 1000);
+		Dimension dim = new Dimension(1200, 1000);
 		setPreferredSize(dim);
 		pack();
 		setTitle("미로찾기");
@@ -53,9 +64,16 @@ public class Ex01 extends JFrame implements Runnable {
 		setResizable(false);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		new Thread(this).start();
+		for(int x=0; x<20; x++) {
+			for(int y=0; y<21; y++) {
+				if(tile[x][y] == 1) {
+					tile_visit[x][y] = true;
+				}
+			}
+		}
 	}
 	public void paint(Graphics g) {
-		buffImage = createImage(1000, 1000);
+		buffImage = createImage(1200, 1000);
 		buffg = buffImage.getGraphics();
 		update(g);
 	}
@@ -104,6 +122,18 @@ public class Ex01 extends JFrame implements Runnable {
 					buffg.drawImage(right_img, right_char_x, right_char_y, this);
 					buffg.drawString("우선법", right_char_x-25, right_char_y);
 				}
+				if(short_exit == false) {
+					short_img = tk.getImage("src/p3_right.png");
+					if(short_left == true) {
+						short_img = tk.getImage("src/p3_left.png");
+					} else if(short_up == true) {
+						short_img = tk.getImage("src/p3_up.png");
+					} else if(short_down == true) {
+						short_img = tk.getImage("src/p3_down.png");
+					}
+					buffg.drawImage(short_img, short_char_x, short_char_y, this);
+					buffg.drawString("깊이우선", short_char_x-25, short_char_y);
+				}
 			}
 		}
 		g.drawImage(buffImage, 0, 0, this);
@@ -124,6 +154,10 @@ public class Ex01 extends JFrame implements Runnable {
 				if(right_exit == false) {
 					right_Check();
 					right_move();
+				}
+				short_Check();
+				if(short_exit == false) {
+					short_move();
 				}
 				Thread.sleep(16);
 			} catch (InterruptedException e) {
@@ -161,7 +195,7 @@ public class Ex01 extends JFrame implements Runnable {
 				left_move = false;
 			}
 		}
-		if(tile[left_x][left_y] == 3) {
+		if(tile[left_y][left_x] == 3) {
 			left_exit = true;
 			left_move = true;
 		}
@@ -306,7 +340,7 @@ public class Ex01 extends JFrame implements Runnable {
 				right_move = false;		
 			}
 		}
-		if(tile[right_x][right_y] == 3) {
+		if(tile[right_y][right_x] == 3) {
 			right_exit = true;
 		}		
 	}
@@ -419,5 +453,121 @@ public class Ex01 extends JFrame implements Runnable {
 				right_move = true;
 			}
 		}
+	}
+	public void short_move() {
+		if(stack2.isEmpty() != true && short_move == false) {
+			Short_xy sxy = stack2.pop();
+			if(short2_x < sxy.x) {
+				short_right = true;
+				short_up = false;
+				short_down = false;
+				short_left = false;
+				short_move = true;
+			} else if(short2_x > sxy.x) {
+				short_left = true;
+				short_up = false;
+				short_right = false;
+				short_down = false;
+				short_move = true;
+			} else if(short2_y > sxy.y) {
+				short_up = true;
+				short_down = false;
+				short_right = false;
+				short_left = false;
+				short_move = true;
+			} else if(short2_y < sxy.y) {
+				short_down = true;
+				short_up = false;
+				short_right = false;
+				short_left = false;
+				short_move = true;
+			}
+		}
+		if(short_right == true) {
+			short_char_x += 5;
+			if(short_char_x % 50 == 0) {
+				short2_x++;
+				short_right = false;
+				short_move = false;				
+			}
+		} else if(short_left == true) {
+			short_char_x -= 5;
+			if(short_char_x % 50 == 0) {
+				short2_x--;
+				short_left = false;
+				short_move = false;							
+			}
+		} else if(short_up == true) {
+			short_char_y -= 5;
+			if(short_char_y % 50 == 0) {
+				short2_y--;
+				short_up = false;
+				short_move = false;							
+			}
+		} else if(short_down == true) {
+			short_char_y += 5;
+			if(short_char_y % 50 == 0) {
+				short2_y++;
+				short_down = false;
+				short_move = false;		
+			}
+		}
+		if(tile[short2_y][short2_x] == 3) {
+			short_count = true;
+		} 
+	}
+	public void short_Check() {
+		
+		while(short_check == false) {
+			boolean Check_left, Check_right, Check_up, Check_down;
+			
+			Check_up = tile_visit[short_y-1][short_x] == true ? true : false;
+			Check_down = tile_visit[short_y+1][short_x] == true ? true : false;
+			Check_left = tile_visit[short_y][short_x-1] == true ? true : false;
+			Check_right = tile_visit[short_y][short_x+1] == true ? true : false;
+			
+			if(tile_visit[short_y][short_x] == false) {
+				stack.push(new Short_xy(short_x, short_y));
+				tile_visit[short_y][short_x] = true;
+			}
+			if(tile_visit[short_y+1][short_x] == false) {
+				short_y++;
+				short_up = true;
+			} else if(tile_visit[short_y][short_x+1] == false) {
+				short_x++;
+				short_right = true;
+			} else if(tile_visit[short_y-1][short_x] == false) {
+				short_y--;
+				short_down = true;
+			} else if(tile_visit[short_y][short_x-1] == false) {
+				short_x--;
+				short_left = true;
+			} else if(tile[short_y][short_x] == 3) {
+				short_count = true;
+			} else if(Check_up == true && Check_down == true &&
+				Check_right == true && Check_left == true) {
+				short_x = stack.peek().x;
+				short_y = stack.peek().y;
+				stack.pop();
+			}
+
+			while(short_count == true) {
+				stack2.push(stack.pop());
+				if(stack.isEmpty() == true) {
+					stack2.pop();
+					short_check = true;
+					short_count = false;
+				}
+			}
+		}
+	}
+}
+class Short_xy {
+	int x;
+	int y;
+	
+	Short_xy(int x, int y) {
+		this.x = x;
+		this.y = y;
 	}
 }
